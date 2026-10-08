@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ALGOrise — DSA finally makes sense.</title>
+    <!-- Google Fonts: Inter & JetBrains Mono -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <!-- Early Theme Initialization (Light, Dark, Cute Modes - Flash Prevention) -->
+    <script>
+      (function() {
+        try {
+          var saved = localStorage.getItem('algorise_theme_preference');
+          var activeTheme = (saved === 'light' || saved === 'dark' || saved === 'cute') ? saved : 'light';
+          document.documentElement.setAttribute('data-theme', activeTheme);
+          if (document.body) {
+            document.body.setAttribute('data-theme', activeTheme);
+          } else {
+            document.addEventListener('DOMContentLoaded', function() {
+              document.body.setAttribute('data-theme', activeTheme);
+            });
+          }
+        } catch (e) {}
+      })();
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

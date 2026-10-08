@@ -1,0 +1,40 @@
+{
+  "name": "algorise",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Algorise - Interactive Algorithmic Learning, Code Execution, DSA Visualizer & Interview Preparation Platform",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build:client": "tsc -b && vite build",
+    "build:server": "esbuild src/server/adminServer.ts --bundle --platform=node --format=esm --outfile=dist-server/adminServer.js --packages=external",
+    "build": "tsc -b && vite build && esbuild src/server/adminServer.ts --bundle --platform=node --format=esm --outfile=dist-server/adminServer.js --packages=external",
+    "start": "node --use-system-ca server.js",
+    "lint": "oxlint",
+    "preview": "vite preview",
+    "test": "node --use-system-ca tests/test_compiler_execution.js",
+    "test:all": "node --use-system-ca tests/test_compiler_execution.js && node --use-system-ca tests/test_popup_system.js",
+    "zip": "node scripts/make-zip.js"
+  },
+  "dependencies": {
+    "@clerk/react": "^6.17.2",
+    "express": "^5.2.1",
+    "jszip": "^3.10.2",
+    "lucide-react": "^1.47.0",
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8"
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.6",
+    "@types/jszip": "^3.4.0",
+    "@types/node": "^24.13.3",
+    "@types/react": "^19.2.18",
+    "@types/react-dom": "^19.2.7",
+    "@vitejs/plugin-react": "^6.1.1",
+    "esbuild": "^0.28.2",
+    "oxlint": "^1.81.0",
+    "puppeteer": "^25.12.0",
+    "typescript": "~6.0.2",
+    "vite": "^8.3.0"
+  }
+}
