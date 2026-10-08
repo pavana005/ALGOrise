@@ -5,6 +5,14 @@ import { Logo } from '../common/Logo';
 import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
 
+const rawClerkKey = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
+const isClerkEnabled = Boolean(
+  typeof rawClerkKey === 'string' &&
+  rawClerkKey.trim() !== '' &&
+  !rawClerkKey.startsWith('pk_test_your_') &&
+  rawClerkKey.startsWith('pk_')
+);
+
 interface HeaderProps {
   activeTab: TabType;
   isMobileOpen?: boolean;
@@ -93,31 +101,57 @@ export const Header: React.FC<HeaderProps> = ({
             {theme}
           </span>
         </button>
-        <Show when="signed-out">
-          <SignInButton mode="modal">
-            <button
-              className="btn btn-outline btn-sm"
-              style={{ padding: '6px 14px', fontSize: '0.8rem', fontWeight: 600 }}
-            >
-              Sign In
-            </button>
-          </SignInButton>
-          <SignUpButton mode="modal">
-            <button
-              className="btn btn-primary btn-sm"
-              style={{ padding: '6px 14px', fontSize: '0.8rem', fontWeight: 600 }}
-            >
-              Sign Up
-            </button>
-          </SignUpButton>
-        </Show>
 
-        <Show when="signed-in">
-          <UserButton showName appearance={{ elements: { userButtonBox: { color: 'var(--text-primary)' } } }} />
-        </Show>
+        {isClerkEnabled && (
+          <>
+            <Show when="signed-out">
+              <SignInButton mode="modal">
+                <button
+                  className="btn btn-outline btn-sm"
+                  style={{ padding: '6px 14px', fontSize: '0.8rem', fontWeight: 600 }}
+                >
+                  Sign In
+                </button>
+              </SignInButton>
+              <SignUpButton mode="modal">
+                <button
+                  className="btn btn-primary btn-sm"
+                  style={{ padding: '6px 14px', fontSize: '0.8rem', fontWeight: 600 }}
+                >
+                  Sign Up
+                </button>
+              </SignUpButton>
+            </Show>
+
+            <Show when="signed-in">
+              <UserButton showName appearance={{ elements: { userButtonBox: { color: 'var(--text-primary)' } } }} />
+            </Show>
+          </>
+        )}
 
         {user && (
           <>
+            {/* Built-in Authenticated User Badge (when not using Clerk UserButton) */}
+            {!user.isGuest && !isClerkEnabled && (
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  padding: '4px 12px',
+                  backgroundColor: 'var(--bg-surface)',
+                  border: '1px solid var(--border-medium)',
+                  borderRadius: '20px',
+                  fontSize: '0.8rem',
+                  fontWeight: 600,
+                  color: 'var(--text-primary)'
+                }}
+              >
+                <span style={{ width: 8, height: 8, borderRadius: '50%', backgroundColor: '#10B981', display: 'inline-block' }} />
+                <span>{user.username || user.name || 'User'}</span>
+              </div>
+            )}
+
             {/* Guest Mode prominent indicator badge */}
             {user.isGuest && (
               <div

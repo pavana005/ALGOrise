@@ -5,7 +5,13 @@ import './index.css';
 import App from './App.tsx';
 import { ErrorBoundary } from './components/common/ErrorBoundary.tsx';
 
-const PUBLISHABLE_KEY = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
+const rawKey = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
+const PUBLISHABLE_KEY = typeof rawKey === 'string' ? rawKey.trim() : '';
+const isClerkConfigured = Boolean(
+  PUBLISHABLE_KEY &&
+  !PUBLISHABLE_KEY.startsWith('pk_test_your_') &&
+  PUBLISHABLE_KEY.startsWith('pk_')
+);
 
 const container = document.getElementById('root');
 if (!container) {
@@ -14,7 +20,7 @@ if (!container) {
 
 const root = createRoot(container);
 
-if (PUBLISHABLE_KEY && PUBLISHABLE_KEY.trim() !== '') {
+if (isClerkConfigured) {
   root.render(
     <StrictMode>
       <ClerkProvider publishableKey={PUBLISHABLE_KEY} afterSignOutUrl="/">
@@ -25,7 +31,6 @@ if (PUBLISHABLE_KEY && PUBLISHABLE_KEY.trim() !== '') {
     </StrictMode>
   );
 } else {
-  console.warn('Missing VITE_CLERK_PUBLISHABLE_KEY in environment variables. Rendering application without ClerkProvider wrapper.');
   root.render(
     <StrictMode>
       <ErrorBoundary>
