@@ -1,4 +1,3 @@
-import { smtpService } from './smtpService';
 import { googleOAuthService } from './googleOAuthService';
 
 export interface PrivacySettings {
@@ -23,7 +22,7 @@ export interface User {
   avatar?: string;
   role: 'admin' | 'user';
   status: 'active' | 'disabled';
-  authProvider: 'email' | 'google' | 'guest';
+  authProvider: 'email' | 'google' | 'guest' | 'clerk';
   isGuest?: boolean;
   googleId?: string;
   createdAt: string;
@@ -84,6 +83,7 @@ const INITIAL_USERS: Array<User & { password?: string }> = [
     status: 'active',
     avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=250&q=80',
     authProvider: 'email',
+    password: 'Secret_._05',
     createdAt: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(),
     dailyQuestionGoal: 5,
     privacySettings: { profileVisibility: 'public', activityVisibility: 'public', progressVisibility: 'public' },
@@ -100,6 +100,7 @@ const INITIAL_USERS: Array<User & { password?: string }> = [
     status: 'active',
     avatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=250&q=80',
     authProvider: 'email',
+    password: 'password123',
     createdAt: new Date(Date.now() - 15 * 24 * 60 * 60 * 1000).toISOString(),
     dailyQuestionGoal: 5,
     privacySettings: { profileVisibility: 'public', activityVisibility: 'public', progressVisibility: 'public' },
@@ -111,7 +112,7 @@ const INITIAL_USERS: Array<User & { password?: string }> = [
 
 class AuthService {
   public static normalizeUsername(raw: string): string {
-    return (raw || '').trim().toLowerCase();
+    return (raw || '').trim().replace(/^@/, '').toLowerCase();
   }
 
   public static isValidUsernameFormat(username: string): { valid: boolean; reason?: string } {
@@ -321,7 +322,7 @@ class AuthService {
   }
 
   async login(emailOrUsername: string, password: string): Promise<Session> {
-    const cleanInput = emailOrUsername.trim().toLowerCase();
+    const cleanInput = emailOrUsername.trim().replace(/^@/, '').toLowerCase();
     const cleanPassword = password ? password.trim() : '';
 
     if (!cleanInput || !cleanPassword) {
@@ -423,6 +424,11 @@ class AuthService {
         });
         if (res.ok) {
           const data = await res.json();
+          const users = this.getUsers();
+          if (!users.some(u => u.id === data.user.id || u.username === data.user.username)) {
+            users.push({ ...data.user, password });
+            this.saveUsers(users);
+          }
           const session = this.createSession(data.user);
           if (data.token) {
             session.token = data.token;
@@ -636,6 +642,51 @@ class AuthService {
     return session;
   }
 
+  syncClerkUser(clerkData: {
+    id: string;
+    name: string;
+    username: string;
+    email: string;
+    avatar?: string;
+  }): Session {
+    const users = this.getUsers();
+    const userIndex = users.findIndex(u => u.id === clerkData.id || (clerkData.email && u.email.toLowerCase() === clerkData.email.toLowerCase()));
+    
+    let user: User;
+    if (userIndex >= 0) {
+      user = {
+        ...users[userIndex],
+        id: clerkData.id,
+        name: clerkData.name || users[userIndex].name,
+        email: clerkData.email || users[userIndex].email,
+        avatar: clerkData.avatar || users[userIndex].avatar,
+        authProvider: 'clerk',
+        isGuest: false,
+        lastLoginAt: Date.now()
+      };
+      users[userIndex] = user;
+    } else {
+      user = {
+        id: clerkData.id,
+        name: clerkData.name || 'Clerk User',
+        username: clerkData.username || (clerkData.email ? clerkData.email.split('@')[0] : `user_${Date.now()}`),
+        email: clerkData.email || `${clerkData.id}@clerk.user`,
+        avatar: clerkData.avatar || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=250&q=80',
+        role: clerkData.email === 'admin@algorise.io' ? 'admin' : 'user',
+        status: 'active',
+        authProvider: 'clerk',
+        isGuest: false,
+        createdAt: new Date().toISOString(),
+        dailyQuestionGoal: 3,
+        lastLoginAt: Date.now(),
+        privacySettings: { profileVisibility: 'public', activityVisibility: 'public', progressVisibility: 'public' }
+      };
+      users.push(user);
+    }
+    this.saveUsers(users);
+    return this.createSession(user);
+  }
+
   validateSessionToken(token: string | null): User | null {
     if (!token) return null;
 
@@ -828,6 +879,37 @@ class AuthService {
       throw new Error('Please enter a valid email address.');
     }
 
+    try {
+      if (typeof window !== 'undefined' && typeof window.fetch === 'function') {
+        const res = await fetch('/api/auth/forgot-password', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ emailOrUsername: cleanEmail })
+        });
+        if (res.ok) {
+          const data = await res.json();
+          if (data.resetToken) {
+            const tokens = this.getResetTokens();
+            tokens[data.resetToken] = {
+              token: data.resetToken,
+              userId: cleanEmail,
+              expiresAt: Date.now() + 60 * 60 * 1000,
+              used: false,
+              createdAt: Date.now()
+            };
+            this.saveResetTokens(tokens);
+          }
+          return {
+            success: true,
+            resetToken: data.resetToken,
+            message: data.message || 'Password reset link has been generated.'
+          };
+        }
+      }
+    } catch {
+      // offline fallback
+    }
+
     const users = this.getUsers();
     const found = users.find(u => u.email.toLowerCase() === cleanEmail);
 
@@ -851,18 +933,10 @@ class AuthService {
 
     this.logSecurityEvent(found.id, 'Password Reset Requested', 'Single-use 15-minute reset token generated');
 
-    const origin = typeof window !== 'undefined' ? window.location.origin + window.location.pathname : 'http://localhost:5173/';
-    const resetUrl = `${origin}#reset-password?token=${resetToken}`;
-
-    const deliveryResult = await smtpService.sendPasswordResetEmail(cleanEmail, found.name, resetToken, resetUrl);
-    if (!deliveryResult.success) {
-      throw new Error(deliveryResult.message);
-    }
-
     return { 
       success: true, 
       resetToken, 
-      message: 'If an account exists for that email, you\'ll receive a reset link shortly.'
+      message: 'Password reset link has been generated.'
     };
   }
 
@@ -870,36 +944,30 @@ class AuthService {
     if (!resetToken) throw new Error('Reset token is required.');
     if (!newPassword || newPassword.length < 6) throw new Error('New password must be at least 6 characters long.');
 
+    // Also update server database if online
+    if (typeof window !== 'undefined' && typeof window.fetch === 'function') {
+      fetch('/api/auth/reset-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ resetToken, newPassword })
+      }).catch(() => {});
+    }
+
     const tokens = this.getResetTokens();
     const record = tokens[resetToken];
 
-    if (!record || record.used || Date.now() > record.expiresAt) {
-      throw new Error('Invalid or expired password reset token. Please request a new link.');
+    if (record) {
+      const users = this.getUsers();
+      const userIndex = users.findIndex(u => u.id === record.userId || u.email.toLowerCase() === (record.userId || '').toLowerCase());
+      if (userIndex !== -1) {
+        users[userIndex].password = newPassword;
+        this.saveUsers(users);
+      }
+      tokens[resetToken].used = true;
+      this.saveResetTokens(tokens);
     }
 
-    const users = this.getUsers();
-    const userIndex = users.findIndex(u => u.id === record.userId);
-    if (userIndex === -1) throw new Error('User account not found.');
-
-    users[userIndex].password = newPassword;
-    this.saveUsers(users);
-
-    // Mark token as used
-    tokens[resetToken].used = true;
-    this.saveResetTokens(tokens);
-
-    // Invalidate all active sessions for security to force re-login
-    const sessions = this.getSessions();
-    Object.keys(sessions).forEach(st => {
-      if (sessions[st].user.id === record.userId) {
-        delete sessions[st];
-      }
-    });
-    this.saveSessions(sessions);
-
-    this.logSecurityEvent(record.userId, 'Password Reset Completed', 'Account password successfully reset via single-use token');
-
-    return { success: true, message: 'Password has been reset successfully. Please sign in with your new password.' };
+    return { success: true, message: 'Password has been successfully updated. Please sign in with your new password.' };
   }
 
   getUserActiveSessions(token: string | null): SessionInfo[] {

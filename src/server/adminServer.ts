@@ -619,7 +619,7 @@ export async function adminApiMiddleware(
         return sendJson(res, 400, { error: 'Please enter your password.' });
       }
 
-      const lowerInput = cleanInput.toLowerCase();
+      const lowerInput = cleanInput.replace(/^@/, '').toLowerCase();
       const user = db.users.find(u => 
         u.email.toLowerCase() === lowerInput || 
         u.username.toLowerCase() === lowerInput
@@ -950,12 +950,7 @@ export async function adminApiMiddleware(
     // -------------------------------------------------------------------------
     if (pathname === '/api/auth/forgot-password' && req.method === 'POST') {
       const { emailOrUsername } = await parseJsonBody<{ emailOrUsername?: string }>(req);
-      const clean = (emailOrUsername || '').trim().toLowerCase();
-
-      if (!clean) {
-        return sendJson(res, 400, { error: 'Please enter your registered email or username.' });
-      }
-
+      const clean = (emailOrUsername || '').trim().replace(/^@/, '').toLowerCase();
       const user = db.users.find(u => 
         u.email.toLowerCase() === clean || 
         u.username.toLowerCase() === clean

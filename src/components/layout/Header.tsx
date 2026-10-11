@@ -6,12 +6,13 @@ import { useAuth } from '../../context/AuthContext';
 import { useTheme } from '../../context/ThemeContext';
 
 const rawClerkKey = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
-const isClerkEnabled = Boolean(
+export const isClerkEnabled = Boolean(
   typeof rawClerkKey === 'string' &&
   rawClerkKey.trim() !== '' &&
   !rawClerkKey.startsWith('pk_test_your_') &&
   rawClerkKey.startsWith('pk_')
 );
+
 
 interface HeaderProps {
   activeTab: TabType;

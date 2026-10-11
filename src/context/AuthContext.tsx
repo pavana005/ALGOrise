@@ -13,6 +13,7 @@ interface AuthContextType {
   signup: (name: string, username: string, email: string, password: string) => Promise<Session>;
   loginWithGoogle: (customUsername?: string) => Promise<Session>;
   loginAsGuest: () => Promise<Session>;
+  loginWithClerk: (clerkData: { id: string; name: string; username: string; email: string; avatar?: string }) => Session;
   checkUsernameAvailability: (username: string) => { available: boolean; message: string; reason: 'invalid_format' | 'taken' | 'available' };
   updateUsername: (newUsername: string) => User;
   logout: () => void;
@@ -77,63 +78,50 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   const login = async (emailOrUsername: string, password: string): Promise<Session> => {
-    setIsLoading(true);
-    try {
-      const session = await authService.login(emailOrUsername, password);
-      setUser(session.user);
-      setToken(session.token);
-      setTimeout(() => {
-        triggerMotivationPopup('LOGIN', true, { username: session.user.name });
-      }, 1000);
-      return session;
-    } finally {
-      setIsLoading(false);
-    }
+    const session = await authService.login(emailOrUsername, password);
+    setUser(session.user);
+    setToken(session.token);
+    setTimeout(() => {
+      triggerMotivationPopup('LOGIN', true, { username: session.user.name });
+    }, 1000);
+    return session;
   };
 
   const signup = async (name: string, username: string, email: string, password: string): Promise<Session> => {
-    setIsLoading(true);
-    try {
-      const session = await authService.signup(name, username, email, password);
-      setUser(session.user);
-      setToken(session.token);
-      setTimeout(() => {
-        triggerMotivationPopup('LOGIN', true, { username: session.user.name });
-      }, 1000);
-      return session;
-    } finally {
-      setIsLoading(false);
-    }
+    const session = await authService.signup(name, username, email, password);
+    setUser(session.user);
+    setToken(session.token);
+    setTimeout(() => {
+      triggerMotivationPopup('LOGIN', true, { username: session.user.name });
+    }, 1000);
+    return session;
   };
 
   const loginWithGoogle = async (customUsername?: string): Promise<Session> => {
-    setIsLoading(true);
-    try {
-      const session = await authService.loginWithGoogle(customUsername);
-      setUser(session.user);
-      setToken(session.token);
-      setTimeout(() => {
-        triggerMotivationPopup('LOGIN', true, { username: session.user.name });
-      }, 1000);
-      return session;
-    } finally {
-      setIsLoading(false);
-    }
+    const session = await authService.loginWithGoogle(customUsername);
+    setUser(session.user);
+    setToken(session.token);
+    setTimeout(() => {
+      triggerMotivationPopup('LOGIN', true, { username: session.user.name });
+    }, 1000);
+    return session;
   };
 
   const loginAsGuest = async (): Promise<Session> => {
-    setIsLoading(true);
-    try {
-      const session = await authService.loginAsGuest();
-      setUser(session.user);
-      setToken(session.token);
-      setTimeout(() => {
-        triggerMotivationPopup('LOGIN', true, { username: 'Guest' });
-      }, 1000);
-      return session;
-    } finally {
-      setIsLoading(false);
-    }
+    const session = await authService.loginAsGuest();
+    setUser(session.user);
+    setToken(session.token);
+    setTimeout(() => {
+      triggerMotivationPopup('LOGIN', true, { username: 'Guest' });
+    }, 1000);
+    return session;
+  };
+
+  const loginWithClerk = (clerkData: { id: string; name: string; username: string; email: string; avatar?: string }): Session => {
+    const session = authService.syncClerkUser(clerkData);
+    setUser(session.user);
+    setToken(session.token);
+    return session;
   };
 
   const checkUsernameAvailability = (username: string) => {
@@ -222,6 +210,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         signup,
         loginWithGoogle,
         loginAsGuest,
+        loginWithClerk,
         checkUsernameAvailability,
         updateUsername,
         logout,

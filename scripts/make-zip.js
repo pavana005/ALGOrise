@@ -15,9 +15,10 @@ function addFilesRecursively(currentDir, relativePath = '') {
     const fullPath = path.join(currentDir, entry.name);
     const relPath = relativePath ? `${relativePath}/${entry.name}` : entry.name;
 
-    // Exclude dependencies, version control, and OS artifacts
+    // Exclude dependencies, version control, build outputs, and OS artifacts
     if (entry.name === 'node_modules') continue;
     if (entry.name === '.git') continue;
+    if (entry.name === 'dist' || entry.name === 'dist-server') continue;
     if (entry.name === '.DS_Store' || entry.name === 'Thumbs.db') continue;
     if (entry.name.endsWith('.tmp') || entry.name.endsWith('.log')) continue;
 

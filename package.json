@@ -14,10 +14,11 @@
     "preview": "vite preview",
     "test": "node --use-system-ca tests/test_compiler_execution.js",
     "test:all": "node --use-system-ca tests/test_compiler_execution.js && node --use-system-ca tests/test_popup_system.js",
+    "test:e2e": "node --use-system-ca tests/test_login_e2e.js",
     "zip": "node scripts/make-zip.js"
   },
   "dependencies": {
-    "@clerk/react": "^6.17.2",
+    "@clerk/react": "^6.17.8",
     "express": "^5.2.1",
     "jszip": "^3.10.2",
     "lucide-react": "^1.47.0",

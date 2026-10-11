@@ -34,11 +34,11 @@ const getTabFromUrl = (customPath?: string): { tab: TabType; problemId?: string 
     const clean = route.startsWith('/') ? route.slice(1) : route;
     if (!clean || clean === 'home') return { tab: 'home' };
     if (clean === 'login') return { tab: 'home' };
-    if (clean === 'problems' || clean === 'problem') return { tab: 'problems' };
-    if (clean.startsWith('problem/')) {
+    if (clean.startsWith('problems/') || clean.startsWith('problem/')) {
       const parts = clean.split('/');
       return { tab: 'problem_detail', problemId: parts[1] || 'two-sum' };
     }
+    if (clean === 'problems' || clean === 'problem') return { tab: 'problems' };
     if (clean === 'flow-of-learning' || clean === 'learn' || clean === 'learning') return { tab: 'learn' };
     if (clean === 'notes') return { tab: 'notes' };
     if (clean === 'settings') return { tab: 'settings' };
@@ -138,11 +138,17 @@ export const AppShell: React.FC = () => {
     }
   }, [theme, user?.id]);
 
-  // Strict route protection: redirect unauthenticated access directly to /login
+  // Strict route protection: redirect unauthenticated access directly to /login (preserving intended target)
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
       const currentPath = window.location.pathname;
-      if (currentPath !== '/login') {
+      const isAuthRoute =
+        currentPath === '/login' ||
+        currentPath === '/signup' ||
+        currentPath === '/forgot-password' ||
+        currentPath === '/reset-password';
+
+      if (!isAuthRoute) {
         const fullRedirect = currentPath + window.location.search + window.location.hash;
         try {
           sessionStorage.setItem('algorise_redirect_after_login', fullRedirect);
@@ -152,7 +158,13 @@ export const AppShell: React.FC = () => {
         window.history.replaceState(null, '', '/login');
       }
     } else if (!isLoading && isAuthenticated) {
-      if (window.location.pathname === '/login') {
+      const currentPath = window.location.pathname;
+      if (
+        currentPath === '/login' ||
+        currentPath === '/signup' ||
+        currentPath === '/forgot-password' ||
+        currentPath === '/reset-password'
+      ) {
         window.history.replaceState(null, '', '/');
       }
     }

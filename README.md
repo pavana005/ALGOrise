@@ -148,9 +148,10 @@ Configure your variables in `.env.local` as needed:
 ```env
 PORT=5173
 ADMIN_PASSWORD=your_secure_admin_password_here
-# Optional Clerk authentication keys
-VITE_CLERK_PUBLISHABLE_KEY=
-CLERK_SECRET_KEY=
+
+# Optional Clerk Authentication (if using Clerk)
+VITE_CLERK_PUBLISHABLE_KEY=pk_test_your_clerk_publishable_key_here
+CLERK_SECRET_KEY=sk_test_your_clerk_secret_key_here
 ```
 
 ### 5. Run Development Server
